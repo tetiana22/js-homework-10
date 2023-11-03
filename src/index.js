@@ -1,55 +1,59 @@
-import axios from 'axios';
-import { fetchBreeds, fetchCatByBreed, showError } from './cat_api.js';
+import { fetchBreeds, fetchCatByBreed } from "./cat-api";
+import { showLoader, hideLoader, onFetchError } from "./helper"
+import './styles.css';
+import Notiflix from 'notiflix';
+import SlimSelect from 'slim-select';
+import 'slim-select/dist/slimselect.css';
 
-const BASE_URL = "https://api.thecatapi.com/v1/";
-const BREED_ENDPOINT = "breeds";
-const CAT_IMAGE_ENDPOINT = "images/search";
-const API_KEY =
-  "live_mhqO1ZiqrBcdtCwcuiuzDdjrhI7YtszSY8DIuxy5ABiMQKTBzEowentbUL1apHNy";
+const ref = {
+    select: document.querySelector('.breed-select'),
+    divCatInfo: document.querySelector('.cat-info'),
+    loader: document.querySelector('.loader'),
+    error: document.querySelector('.error'),
+};
 
-const breedSelect = document.querySelector('.breed-select');
-const loader = document.querySelector('.loader');
-const error = document.querySelector('.error');
-const catInfo = document.querySelector('.cat-info');
+const { select, divCatInfo, loader, error } = ref;
+
+let arrBreedsId = [];
+divCatInfo.innerHTML = '';
+
+fetchBreeds()
+  .then(data => {
+    data.forEach(element => {
+      arrBreedsId.push({ text: element.name, value: element.id });
+    });
+    new SlimSelect({
+      select: select,
+      data: arrBreedsId
+    });
+  })
+  .catch(error => onFetchError())
+  .finally(() => loader.classList.remove('is-hidden'));
 
 
+select.addEventListener('change', onSelectBreed);
 
-breedSelect.addEventListener("change", (event) => {
-    const breedId = breedSelect.value;
-    fetchCatByBreed(breedId);
-  });
-  
-  
-  fetchBreeds()
-    .then(breeds => {
-      breeds.forEach(breed => {
-        const option = document.createElement('option');
-        option.value = breed.value;
-        option.text = breed.text;
-  
-        breedSelect.appendChild(option);
-      });
+function onSelectBreed(event) {
+    divCatInfo.innerHTML = '';
+    showLoader()
+    const breedId = event.currentTarget.value;
+
+  fetchCatByBreed(breedId)
+     .then(data => {
+         hideLoader()
+         
+         const { url, breeds } = data[0];
+
+         divCatInfo.innerHTML = `
+            <div class="img">
+                <img src="${url}" alt="${breeds[0].name}" width="400"/>
+             </div>
+             <div class="description">
+                <h1>${breeds[0].name}</h1>
+                    <p>${breeds[0].description}</p>
+                        <p><b>Temperament:</b> ${breeds[0].temperament}</p>
+             </div>`;
     })
-    .catch(showError);
-  
-  function breedTemplate(breed) {
-    return `
-      <div class="breed-card card">
-        <div class="image-container">
-          <img src="${breed.image.url}" alt="#" class="breed-image" />
-        </div>
-        <div class="breed-body">
-          <h4 class="breed-name">${breed.name}</h4>
-          <p class="breed-temperament">${breed.temperament}</p>
-          <p class="breed-desc">${breed.description}</p>
-        </div>
-      </div>
-    `;
-  }
-  
-  
-  
-  function renderBreed(breed) {
-    const markup = breedTemplate(breed);
-    catInfo.insertAdjacentHTML('beforeend', markup);
-  }
+    .catch(error => onFetchError())
+    .finally(() => loader.classList.add('is-hidden'));
+}
