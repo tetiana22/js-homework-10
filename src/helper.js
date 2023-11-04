@@ -11,11 +11,13 @@ export function showLoader() {
     divCatInfo.innerHTML = '';
     loader.classList.remove('is-hidden');
     select.classList.add('is-hidden');
+    divCatInfo.style.visibility = 'hidden';
 }
 
 export function hideLoader() {
     loader.classList.add('is-hidden');
      select.classList.remove('is-hidden');
+     divCatInfo.style.visibility = 'visible';
 }
 
 export function onFetchError() {
